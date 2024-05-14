@@ -1,0 +1,107 @@
+{% extends 'admin/base_site.html' %}
+
+{% block content %}
+<h1>THỐNG KÊ</h1>
+<div id="select-container">
+    <form method="GET">
+    <select id="select-type" name="select-type" onchange="updateOptions()">
+        <option value="month">Tháng</option>
+        <option value="quarter">Quý</option>
+        <option value="year">Năm</option>
+    </select>
+    <select id="select-value" name="select-value"></select>
+    <button type="submit">Get Stats</button>
+    </form>
+</div>
+<br/>
+<ul>
+    {% for p in stats %}
+    <li><strong>{{ p.name }}</strong>: {{ p.count }}</li>
+    {% endfor %}
+</ul>
+<canvas id="myChart"></canvas>
+
+<script>
+
+        function updateOptions() {
+            var selectType = document.getElementById("select-type");
+            var selectValue = document.getElementById("select-value");
+
+            // Xóa tất cả các option cũ
+            selectValue.innerHTML = "";
+
+            // Lấy giá trị đã chọn từ select box thứ nhất
+            var selectedType = selectType.value;
+
+            // Tạo các option mới dựa trên giá trị đã chọn
+            if (selectedType === "month") {
+                for (var i = 1; i <= 12; i++) {
+                    var option = document.createElement("option");
+                    option.text = "Tháng " + i;
+                    option.value = i;
+                    selectValue.add(option);
+                }
+            } else if (selectedType === "quarter") {
+                var quarters = ["Quý 1", "Quý 2", "Quý 3", "Quý 4"];
+                for (var i = 0; i < quarters.length; i++) {
+                    var option = document.createElement("option");
+                    option.text = quarters[i];
+                    option.value = i + 1;
+                    selectValue.add(option);
+                }
+            } else if (selectedType === "year") {
+                var currentYear = new Date().getFullYear();
+                var startYear = currentYear - 10; // Change this to adjust the range of years
+                var endYear = currentYear + 10;
+                for (var i = startYear; i <= endYear; i++) {
+                    var option = document.createElement("option");
+                    option.text = i;
+                    option.value = i;
+                    selectValue.add(option);
+                }
+            }
+        }
+        // Gọi hàm updateOptions lần đầu khi trang được tải
+        updateOptions();
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let labels = [];
+    let values = [];
+
+    {% for p in stats %}
+    values.push({{ p.count }})
+    labels.push('{{ p.name }}')
+    {% endfor %}
+
+    window.onload = () => {
+        const ctx = document.getElementById('myChart');
+
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '# So luong',
+            data: values,
+            borderWidth: 1,
+            backgroundColor: [
+              'rgb(255, 99, 132)',
+              'rgb(54, 162, 235)',
+              'rgb(255, 205, 86)'
+            ]
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+</script>
+{% endblock %}

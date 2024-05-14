@@ -37,7 +37,24 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'ecommerceapp.apps.EcommerceappConfig',
+    'rest_framework',
+    'drf_yasg',
+    'cloudinary',
+    'oauth2_provider',
 ]
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+    )
+}
+import cloudinary
+
+cloudinary.config(
+    cloud_name="dm5nn54wh",
+    api_key="836445152769358",
+    api_secret="dxV48f7EsDEvsA4jeIRvjDBWbqM"
+)
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -48,6 +65,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+import pymysql
+pymysql.install_as_MySQLdb()
 
 ROOT_URLCONF = 'ecommerce.urls'
 
@@ -75,12 +94,17 @@ WSGI_APPLICATION = 'ecommerce.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'ecommercedb',
+        'USER': 'root',
+        'PASSWORD': 'Admin@123',
+        'HOST': ''  # mặc định localhost
     }
 }
-
-
+INTERNAL_IPS = [
+    "127.0.0.1",
+]
+AUTH_USER_MODEL = 'ecommerceapp.User'
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
@@ -121,3 +145,9 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+CLIENT_ID = 'Dh97O4f53Q33QlaMYoKYJerEb4fHuNevCVGP2pnQ'
+CLIENT_SECRET = '4i4aMh0i1Tvz0SdGEl9K6obBKyzFwV1r8TwOvbEwFaJ3FF224D9eVPXjQlfvLcrJ0C3I89COGEhLiUofO3CaJZ6rg2PtFjamHcezZycmecGMFzr43Bc6B4289rDiWiun'
+
+OAUTH2_PROVIDER = {
+    'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore'
+}
