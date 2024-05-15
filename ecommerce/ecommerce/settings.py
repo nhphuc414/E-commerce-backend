@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg',
     'cloudinary',
+    'corsheaders',
     'oauth2_provider',
 ]
 REST_FRAMEWORK = {
@@ -62,9 +63,11 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+CORS_ALLOW_ALL_ORIGINS = True
 import pymysql
 pymysql.install_as_MySQLdb()
 
@@ -101,9 +104,7 @@ DATABASES = {
         'HOST': ''  # mặc định localhost
     }
 }
-INTERNAL_IPS = [
-    "127.0.0.1",
-]
+
 AUTH_USER_MODEL = 'ecommerceapp.User'
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -148,6 +149,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CLIENT_ID = 'Dh97O4f53Q33QlaMYoKYJerEb4fHuNevCVGP2pnQ'
 CLIENT_SECRET = '4i4aMh0i1Tvz0SdGEl9K6obBKyzFwV1r8TwOvbEwFaJ3FF224D9eVPXjQlfvLcrJ0C3I89COGEhLiUofO3CaJZ6rg2PtFjamHcezZycmecGMFzr43Bc6B4289rDiWiun'
 
-OAUTH2_PROVIDER = {
-    'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore'
-}
+# OAUTH2_PROVIDER = {
+#     'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore'
+# }

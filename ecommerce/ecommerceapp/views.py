@@ -1,9 +1,10 @@
+from django.db import transaction
 from django.shortcuts import render
 from rest_framework import viewsets, parsers, permissions, generics, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from ecommerceapp import serializers, perms
+from ecommerceapp import serializers, perms, paginators
 from ecommerceapp.models import User, Store, Product, Order, OrderDetail, Comment, Like
 
 
@@ -26,7 +27,7 @@ class UserViewSet(viewsets.ViewSet, generics.CreateAPIView):
     def get_orders(self, request):
         orders = Order.objects.filter(user=request.user)
         # Serialize the orders
-        serializer = serializers.OrderSerializer(orders, many=True)
+        serializer = serializers.OrderViewSerializer(orders, many=True)
         return Response(serializer.data)
 
 
@@ -46,6 +47,13 @@ class StoreViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.CreateAP
         serializer = serializers.StoreSerializer(inactive_stores, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @action(methods=['get'], url_path='products', url_name='products', detail=True)
+    def products(self, request, pk):
+        products = self.get_object().products.filter(active=True).all()
+
+        return Response(serializers.ProductSerializer(products, many=True, context={'request': request}).data,
+                        status=status.HTTP_200_OK)
+
     @action(methods=['post'], url_path='confirm-store', url_name='confirm-store', detail=True)
     def confirm(self, request, pk):
         store = self.get_object()
@@ -56,16 +64,15 @@ class StoreViewSet(viewsets.ViewSet, generics.RetrieveAPIView, generics.CreateAP
     @action(methods=['post'], url_path='reject-store', url_name='reject-store', detail=True)
     def reject(self, request, pk):
         store = self.get_object()
-        user = request.user
         store.delete()
         return Response({'message': 'Store rejected and deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
-
 
 
 class ProductViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAPIView, generics.UpdateAPIView, generics.CreateAPIView):
     serializer_class = serializers.ProductSerializer
     permission_classes = [permissions.AllowAny()]
     parser_classes = [parsers.MultiPartParser]
+    pagination_class = paginators.ProductsPaginator
 
     def get_permissions(self):
         if self.action in ['create', 'update']:
@@ -97,8 +104,15 @@ class ProductViewSet(viewsets.ViewSet, generics.ListAPIView, generics.RetrieveAP
         c = Comment.objects.create(user=request.user, product=self.get_object(), content=request.data.get('content'))
         return Response(serializers.CommentSerializer(c).data, status=status.HTTP_201_CREATED)
 
+    @action(methods=['get'], url_path='comments', url_name='comments', detail=True)
+    def comments(self, request, pk):
+        comments = self.get_object().comment_set.filter(active=True).all()
 
-class OrderViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIView):
+        return Response(serializers.CommentSerializer(comments, many=True, context={'request': request}).data,
+                        status=status.HTTP_200_OK)
+
+
+class OrderViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     queryset = Order.objects.all()
     serializer_class = serializers.OrderSerializer
 
@@ -106,10 +120,34 @@ class OrderViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAP
         if self.action in ['create']:
             return [permissions.IsAuthenticated()]
 
-        return [perms.OwnerAuthenticated()]
+        return [permissions.AllowAny()]
 
 
-class OrderDetailViewSet(viewsets.ViewSet, generics.CreateAPIView):
+class PlaceOrderViewSet(viewsets.ViewSet, generics.CreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.PlaceOrderSerializer
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        order_details_data = request.data.pop('order_details')
+        order_data = request.data
+        serializer = serializers.OrderSerializer(data=order_data)
+        if serializer.is_valid():
+            order = serializer.save(user=request.user)
+            # Validate and create OrderDetails within the transaction
+            for detail_data in order_details_data:
+                detail_serializer = serializers.OrderDetailSerializer(data=detail_data)
+                if detail_serializer.is_valid():
+                    detail_serializer.save(Order=order, product_id = detail_data["product_id"])
+                else:
+                    transaction.set_rollback(True)
+                    return Response(detail_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class OrderDetailViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
     queryset = OrderDetail.objects.all()
     serializer_class = serializers.OrderDetailSerializer
     permission_classes = [permissions.IsAuthenticated]

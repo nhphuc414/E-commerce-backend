@@ -17,13 +17,15 @@ class UserSerializier(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'username', 'password', 'email', 'avatar', 'store']
+        fields = ['first_name', 'last_name', 'username', 'password', 'email', 'avatar', 'store','is_staff']
         extra_kwargs = {
             'password': {
                 'write_only': True
+            },
+            'is_staff':{
+                'read_only': True
             }
         }
-
     def create(self, validated_data):
         data = validated_data.copy()
         user = User(**data)
@@ -56,25 +58,38 @@ class ProductSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-class OrderDetailSerializer(serializers.ModelSerializer):
-    product = ProductSerializer()
+class OrderViewSerializer(serializers.ModelSerializer):
+    products = ProductSerializer(many=True)
 
     class Meta:
-        model = OrderDetail
+        model = Order
         exclude = ['active']
 
 
 class OrderSerializer(serializers.ModelSerializer):
-    order_details = OrderDetailSerializer(many=True, read_only=True)
     user = UserSerializier(read_only=True)
 
     class Meta:
         model = Order
         exclude = ['active']
 
-    def create(self, validated_data):
-        validated_data['user'] = self.context['request'].user
-        return super().create(validated_data)
+
+class OrderDetailSerializer(serializers.ModelSerializer):
+    Order = OrderSerializer(read_only=True)
+    product = ProductSerializer(read_only=True)
+
+    class Meta:
+        model = OrderDetail
+        exclude = ['active']
+
+
+class PlaceOrderSerializer(serializers.ModelSerializer):
+    total = serializers.DecimalField(max_digits=10, decimal_places=2)
+    order_details = OrderDetailSerializer(many=True)
+
+    class Meta:
+        model = Order
+        fields = ['total', 'order_details']
 
 
 class CommentSerializer(serializers.ModelSerializer):
